@@ -33,7 +33,7 @@ export default function PieChart({ truckCount, trainCount }) {
     responsive: true,
     plugins: {
       legend: {
-        position: "bottom"
+        position: "bottom" as const
       }
     }
   };

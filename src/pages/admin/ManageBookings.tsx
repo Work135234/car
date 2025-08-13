@@ -160,7 +160,11 @@ export default function ManageBookings() {
                         {booking.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{booking.customer}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {typeof booking.customer === 'object' && booking.customer !== null
+                        ? booking.customer.name || booking.customer.email || JSON.stringify(booking.customer)
+                        : booking.customer}
+                    </p>
                     <p className="text-xs text-muted-foreground">{booking.from} → {booking.to}</p>
                   </div>
                 </div>

@@ -854,7 +854,7 @@ const BookingManagement: React.FC = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-
+          {/* Remove stray booking.customer?.name span from here */}
           {success && (
             <Alert className="mb-4">
               <AlertDescription>{success}</AlertDescription>
@@ -984,10 +984,11 @@ const BookingManagement: React.FC = () => {
                             <Calendar className="h-3 w-3" />
                             <span>{formatDate(booking.createdAt)}</span>
                           </div>
+                          <p><strong>Name:</strong> {selectedBooking.customer?.name || 'Unknown'}</p>
                           {booking.dispatcher && (
                             <div className="flex items-center gap-1">
                               <Truck className="h-3 w-3" />
-                              <span>Assigned: {booking.dispatcher.name}</span>
+                              <span>Assigned: {booking.dispatcher?.name || 'Unknown Dispatcher'}</span>
                             </div>
                           )}
                           {booking.scheduledDate && (
@@ -1086,75 +1087,77 @@ const BookingManagement: React.FC = () => {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card >
 
       {/* Booking Details Modal */}
-      {selectedBooking && !showAssignModal && !showScheduleModal && (
-        <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Booking Details</DialogTitle>
-              <DialogDescription>
-                Complete information for booking #{selectedBooking._id.slice(-6)}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold">Booking Information</h3>
-                <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
-                  <div>
-                    <p><strong>ID:</strong> {selectedBooking._id}</p>
-                    <p><strong>Status:</strong> {selectedBooking.status}</p>
-                    <p><strong>Transport:</strong> {selectedBooking.modeOfTransport}</p>
-                    <p><strong>Fare:</strong> ${selectedBooking.fare?.toFixed(2) || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p><strong>Distance:</strong> {selectedBooking.distance?.toFixed(2) || 'N/A'} km</p>
-                    <p><strong>Weight:</strong> {selectedBooking.weight || 'N/A'} kg</p>
-                    <p><strong>Created:</strong> {formatDate(selectedBooking.createdAt)}</p>
-                    <p><strong>Scheduled:</strong> {formatDate(selectedBooking.scheduledDate || '')}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold">Addresses</h3>
-                <div className="mt-2 text-sm">
-                  <p><strong>Pickup:</strong> {selectedBooking.pickupAddress}</p>
-                  <p><strong>Delivery:</strong> {selectedBooking.deliveryAddress}</p>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold">Customer Information</h3>
-                <div className="mt-2 text-sm">
-                  <p><strong>Name:</strong> {selectedBooking.customer?.name || 'Unknown'}</p>
-                  <p><strong>Email:</strong> {selectedBooking.customer?.email || 'N/A'}</p>
-                </div>
-              </div>
-
-              {selectedBooking.dispatcher && (
+      {
+        selectedBooking && !showAssignModal && !showScheduleModal && (
+          <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Booking Details</DialogTitle>
+                <DialogDescription>
+                  Complete information for booking #{selectedBooking._id.slice(-6)}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold">Dispatcher Information</h3>
-                  <div className="mt-2 text-sm">
-                    <p><strong>Name:</strong> {selectedBooking.dispatcher.name}</p>
-                    <p><strong>Email:</strong> {selectedBooking.dispatcher.email}</p>
+                  <h3 className="font-semibold">Booking Information</h3>
+                  <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
+                    <div>
+                      <p><strong>ID:</strong> {selectedBooking._id}</p>
+                      <p><strong>Status:</strong> {selectedBooking.status}</p>
+                      <p><strong>Transport:</strong> {selectedBooking.modeOfTransport}</p>
+                      <p><strong>Fare:</strong> ${selectedBooking.fare?.toFixed(2) || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p><strong>Distance:</strong> {selectedBooking.distance?.toFixed(2) || 'N/A'} km</p>
+                      <p><strong>Weight:</strong> {selectedBooking.weight || 'N/A'} kg</p>
+                      <p><strong>Created:</strong> {formatDate(selectedBooking.createdAt)}</p>
+                      <p><strong>Scheduled:</strong> {formatDate(selectedBooking.scheduledDate || '')}</p>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {selectedBooking.estimatedDelivery && (
                 <div>
-                  <h3 className="font-semibold">Delivery Information</h3>
+                  <h3 className="font-semibold">Addresses</h3>
                   <div className="mt-2 text-sm">
-                    <p><strong>Estimated Delivery:</strong> {formatDate(selectedBooking.estimatedDelivery)}</p>
+                    <p><strong>Pickup:</strong> {selectedBooking.pickupAddress}</p>
+                    <p><strong>Delivery:</strong> {selectedBooking.deliveryAddress}</p>
                   </div>
                 </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+
+                <div>
+                  <h3 className="font-semibold">Customer Information</h3>
+                  <div className="mt-2 text-sm">
+                    <p><strong>Name:</strong> {selectedBooking.customer?.name || 'Unknown'}</p>
+                    <p><strong>Email:</strong> {selectedBooking.customer?.email || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {selectedBooking.dispatcher && (
+                  <div>
+                    <h3 className="font-semibold">Dispatcher Information</h3>
+                    <div className="mt-2 text-sm">
+                      <p><strong>Name:</strong> {selectedBooking.dispatcher?.name || 'Unknown'}</p>
+                      <p><strong>Email:</strong> {selectedBooking.dispatcher?.email || 'N/A'}</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedBooking.estimatedDelivery && (
+                  <div>
+                    <h3 className="font-semibold">Delivery Information</h3>
+                    <div className="mt-2 text-sm">
+                      <p><strong>Estimated Delivery:</strong> {formatDate(selectedBooking.estimatedDelivery)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )
+      }
 
       {/* Assign Dispatcher Modal */}
       <Dialog open={showAssignModal} onOpenChange={setShowAssignModal}>
@@ -1209,7 +1212,7 @@ const BookingManagement: React.FC = () => {
       </Dialog>
 
 
-    </div>
+    </div >
   );
 };
 

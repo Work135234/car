@@ -17,6 +17,7 @@ export default function ManageUsers() {
   const [newUserRole, setNewUserRole] = useState("");
 
   const [users, setUsers] = useState([]);
+  const [userBookings, setUserBookings] = useState({}); // { [userId]: bookingCount }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -35,6 +36,18 @@ export default function ManageUsers() {
         const result = await response.json();
         if (result.success) {
           setUsers(result.users || []);
+          // Fetch booking counts for each user
+          const bookingsObj = {};
+          await Promise.all((result.users || []).map(async (user) => {
+            try {
+              const bookingsRes = await fetch(`http://localhost:5000/api/admin/bookings?customerId=${user._id || user.id}`);
+              const bookingsData = await bookingsRes.json();
+              bookingsObj[user._id || user.id] = bookingsData.success ? bookingsData.pagination?.totalBookings || 0 : 0;
+            } catch {
+              bookingsObj[user._id || user.id] = 0;
+            }
+          }));
+          setUserBookings(bookingsObj);
         } else {
           setError(result.message || 'Failed to fetch users');
         }
@@ -101,7 +114,9 @@ export default function ManageUsers() {
   const filteredUsers = safeUsers.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesRole =
+      roleFilter === "all" ||
+      (user.role && user.role.toLowerCase() === roleFilter.toLowerCase());
     return matchesSearch && matchesRole;
   });
 
@@ -128,7 +143,7 @@ export default function ManageUsers() {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{safeUsers.length}</div>
+            <div className="text-2xl font-bold">{users.length}</div>
             <p className="text-xs text-muted-foreground">
               Registered users
             </p>
@@ -142,7 +157,7 @@ export default function ManageUsers() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {safeUsers.filter(u => u.role === "customer").length}
+              {users.filter(u => u.role && u.role.toLowerCase() === "customer").length}
             </div>
             <p className="text-xs text-muted-foreground">
               Customers
@@ -157,7 +172,7 @@ export default function ManageUsers() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {safeUsers.filter(u => u.role === "dispatcher").length}
+              {users.filter(u => u.role && u.role.toLowerCase() === "dispatcher").length}
             </div>
             <p className="text-xs text-muted-foreground">
               Drivers
@@ -172,7 +187,7 @@ export default function ManageUsers() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {safeUsers.filter(u => u.role === "admin").length}
+              {users.filter(u => u.role && u.role.toLowerCase() === "admin").length}
             </div>
             <p className="text-xs text-muted-foreground">
               System administrators
@@ -224,42 +239,29 @@ export default function ManageUsers() {
           <div className="space-y-4">
             {filteredUsers.map((user) => (
               <div
-                key={user.id}
+                key={user._id || user.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center space-x-4">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium flex items-center gap-1">
-                        {user.name}
-                        <Badge className="bg-blue-600 text-white ml-2">
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </Badge>
-                      </p>
-                      <Badge className={getRoleColor(user.role)}>
-                        {getRoleIcon(user.role)}
-                        <span className="ml-1 capitalize">
-                          {user.role === 'customer' && 'Registered Customer'}
-                          {user.role === 'dispatcher' && 'Registered Dispatcher'}
-                          {user.role === 'admin' && 'Registered Admin'}
-                        </span>
-                      </Badge>
-                      <Badge className={getStatusColor(user.status)}>
-                        {user.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Joined: {
-                        user.joinDate && !isNaN(Date.parse(user.joinDate))
-                          ? new Date(user.joinDate).toLocaleDateString()
-                          : (user.joinDate ? user.joinDate : "Unknown")
-                      } • Bookings: {typeof user.totalBookings === 'number' ? user.totalBookings : 0}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium flex items-center gap-2">
+                      {user.name}
+                      <div
+                        className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold bg-muted text-primary border border-primary/20 shadow-sm capitalize"
+                        style={{ minWidth: 60, textAlign: 'center' }}
+                      >
+                        {user.role}
+                      </div>
                     </p>
                   </div>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Joined: {
+                      user.createdAt && !isNaN(Date.parse(user.createdAt))
+                        ? new Date(user.createdAt).toLocaleDateString()
+                        : (user.createdAt ? user.createdAt : "Unknown")
+                    } • Bookings: {typeof userBookings[user._id || user.id] === 'number' ? userBookings[user._id || user.id] : 0}
+                  </p>
                 </div>
 
                 <div className="flex gap-1">

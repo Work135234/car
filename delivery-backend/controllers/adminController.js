@@ -1,3 +1,71 @@
+// Export Report (PDF/Excel)
+const { Parser } = require('json2csv');
+const ExcelJS = require('exceljs');
+const PDFDocument = require('pdfkit');
+const stream = require('stream');
+
+exports.exportReport = async (req, res) => {
+  try {
+    const { startDate, endDate, reportType, format } = req.query;
+    let query = {};
+    if (startDate && endDate) {
+      query.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    let data = [];
+    if (reportType === 'bookings') {
+      data = await Booking.find(query)
+        .populate('customer', 'name email')
+        .populate('dispatcher', 'name email')
+        .lean();
+    } else if (reportType === 'users') {
+      data = await User.find(query).select('-password').lean();
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid report type' });
+    }
+
+    if (format === 'excel') {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Report');
+      if (data.length > 0) {
+        worksheet.columns = Object.keys(data[0]).map(key => ({ header: key, key }));
+        data.forEach(row => worksheet.addRow(row));
+      }
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=report.xlsx`);
+      await workbook.xlsx.write(res);
+      res.end();
+    } else if (format === 'pdf') {
+      const doc = new PDFDocument();
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=report.pdf');
+      doc.pipe(res);
+      if (data.length > 0) {
+        const keys = Object.keys(data[0]);
+        doc.fontSize(12).text(keys.join(' | '));
+        doc.moveDown();
+        data.forEach(row => {
+          doc.text(keys.map(k => String(row[k] ?? '')).join(' | '));
+        });
+      } else {
+        doc.text('No data available');
+      }
+      doc.end();
+    } else {
+      // fallback: CSV
+      const parser = new Parser();
+      const csv = parser.parse(data);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=report.csv');
+      res.send(csv);
+    }
+  } catch (err) {
+    console.error('Export report error:', err);
+    res.status(500).json({ success: false, message: 'Failed to export report' });
+  }
+};
 const User = require('../models/User');
 const PricingRule = require('../models/PricingRule');
 const Booking = require('../models/Booking');
@@ -228,40 +296,83 @@ exports.generateReport = async (req, res) => {
     let reportData = {};
 
     switch (reportType) {
-      case 'bookings':
+      case 'revenue': {
+        // Revenue report: total revenue, bookings count, average fare, revenue by status
+        const bookings = await Booking.find(query);
+        const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.fare || 0), 0);
+        const totalBookings = bookings.length;
+        const averageFare = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+        const revenueByStatus = bookings.reduce((acc, booking) => {
+          acc[booking.status] = (acc[booking.status] || 0) + (booking.fare || 0);
+          return acc;
+        }, {});
+        reportData = {
+          summary: {
+            totalRevenue,
+            totalBookings,
+            averageOrderValue: averageFare,
+            revenueByStatus
+          },
+          bookings
+        };
+        break;
+      }
+      case 'bookings': {
         const bookings = await Booking.find(query)
           .populate('customer', 'name email')
           .populate('dispatcher', 'name email');
-
         const totalBookings = bookings.length;
         const totalRevenue = bookings.reduce((sum, booking) => sum + booking.fare, 0);
         const statusCounts = bookings.reduce((acc, booking) => {
           acc[booking.status] = (acc[booking.status] || 0) + 1;
           return acc;
         }, {});
-
         reportData = {
-          totalBookings,
-          totalRevenue,
-          statusCounts,
+          summary: {
+            totalBookings,
+            totalRevenue,
+            statusBreakdown: statusCounts
+          },
           bookings
         };
         break;
-
-      case 'users':
+      }
+      case 'users': {
         const users = await User.find(query).select('-password');
         const userCounts = users.reduce((acc, user) => {
           acc[user.role] = (acc[user.role] || 0) + 1;
           return acc;
         }, {});
-
         reportData = {
-          totalUsers: users.length,
-          userCounts,
+          summary: {
+            totalUsers: users.length,
+            userCounts
+          },
           users
         };
         break;
-
+      }
+      case 'pricingRules': {
+        const pricingRules = await PricingRule.find(query).lean();
+        reportData = {
+          summary: {
+            totalPricingRules: pricingRules.length
+          },
+          pricingRules
+        };
+        break;
+      }
+      case 'trainSchedules': {
+        const TrainSchedule = require('../models/TrainSchedule');
+        const trainSchedules = await TrainSchedule.find(query).lean();
+        reportData = {
+          summary: {
+            totalTrainSchedules: trainSchedules.length
+          },
+          trainSchedules
+        };
+        break;
+      }
       default:
         return res.status(400).json({ success: false, message: 'Invalid report type' });
     }

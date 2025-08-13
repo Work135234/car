@@ -69,13 +69,13 @@ export default function Login() {
         {loading ? "Signing in..." : "Sign In"}
       </Button>
       <div className="text-center mt-2">
-        <a
-          href="/forgot-password"
+        <Link
+          to="/forgot-password"
           className="text-sm text-muted-foreground hover:text-primary underline cursor-pointer"
           tabIndex={0}
         >
           Forgot your password?
-        </a>
+        </Link>
       </div>
     </form>
   );

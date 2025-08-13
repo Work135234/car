@@ -63,6 +63,7 @@ router.get('/bookings', adminController.getAllBookings);
 
 // Reports
 router.get('/reports', adminController.generateReport);
+router.get('/reports/export', adminController.exportReport);
 
 // PATCH /api/admin/pricing-rules/:id/toggle
 router.patch('/pricing-rules/:id/toggle', adminController.toggleRuleActive);

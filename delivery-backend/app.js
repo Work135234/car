@@ -22,7 +22,7 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const allowedOrigins = ["http://localhost:5173", "http://localhost:8080"];
+const allowedOrigins = ["http://localhost:5173", "http://localhost:8080", "http://localhost:8082"];
 const io = socketIo(server, {
   cors: {
     origin: allowedOrigins,
